@@ -1,0 +1,100 @@
+veta = input("Povez mi neco vtipneho: ")
+def uprava():
+    pocet = 0
+    for i in veta:
+        if veta[pocet].isalpha():
+            global prvni
+            prvni = veta[pocet]
+            break
+        else:
+            pocet += 1
+    pocet = -1
+    for x in veta:
+        if veta[pocet].isalpha():
+            global posledni
+            posledni = veta[pocet]
+            break
+        else:
+            pocet -= 1
+def naucsepsat():
+    pravopis = veta.capitalize()
+    if pravopis == veta:
+        pass
+    else:
+        print("\nNauc se psat, pise se to takhle: " + pravopis)
+        
+def slovickareni():
+    print("\n\nJednotliva slova a casti oddelene mezerou nebo carkou: ")
+    global pismenka
+    for i in rozdeleni:
+        i = i.strip("[],'.")
+        i = i.strip()
+        netusim = 0
+        mezera = 0
+        for x in i:
+            if x.isalpha():
+                netusim = 1
+            elif x == " ":
+                mezera = 1
+                break
+            else:
+                continue
+        if mezera == 1:
+            pomocnik = i
+            i = str(i)
+            i = i.split()
+            for x in i:
+                print(x)
+                for y in x:
+                    if y.isalpha():
+                        pismenka = str(pismenka) + str(y)
+                    else:
+                        continue
+            i = pomocnik
+            continue
+        elif netusim == 1:
+            print(i)
+            pomocnik = i
+            i = str(i)
+            for x in i:
+                if x.isalpha():
+                    pismenka = str(pismenka) + str(x)
+                else:
+                    continue
+            i = pomocnik
+        else:
+            print(i)
+        
+def slovicka():
+    global rozdeleni
+    global pismenka
+    pismenka = ""
+    if veta.find(".") >= 0:
+        rozdeleni = veta.split(".")
+        print("\nNapsal jsi krasne vety: ")
+        for i in rozdeleni:
+            i = i.strip()
+            print(i)
+        if veta.find(",") >= 0:
+            rozdeleni = veta.split(",")
+            slovickareni()
+        else:
+            rozdeleni = veta.split()
+            slovickareni()
+    else:
+        if veta.find(",") >= 0:
+            rozdeleni = veta.split(",")
+            slovickareni()
+        else:
+            rozdeleni = veta.split()
+            slovickareni()
+    print("\n\nJednotliva pismena tvojeho stringu: ")
+    for x in pismenka:
+        stripik = x.strip()
+        print(stripik.capitalize())
+        
+uprava()
+naucsepsat()
+slovicka()
+print("\nPrvni znak:  \"" + veta[0].upper() + "\"\nPoslední znak: \"" + veta[-1].upper() + "\"")
+print("\nPrvni pismeno:  \"" + prvni.upper() + "\"\nPoslední pismeno: \"" + posledni.upper() + "\"")
