@@ -182,12 +182,20 @@ def fight(selected_classes):
     while 1:
         print('\n___________Round ' + str(round) + '____________\n')
         print('your hp:' + str(your_hp) + '\n' + 'enemy hp: ' + str(enemy_hp) + '\n')
-        your_attack = attack(your_stats['mindmg'],
-                             your_stats['maxdmg'],
-                             your_stats['damage_reduction'],
-                             your_stats['crit_chance'],
-                             selected_classes['your_class'])
-        enemy_hp -= int(your_attack * dmg_scaling)
+        attack_counter = 2
+        while attack_counter == 1 or attack_counter == 2:
+            your_attack = attack(your_stats['mindmg'],
+                                 your_stats['maxdmg'],
+                                 your_stats['damage_reduction'],
+                                 your_stats['crit_chance'],
+                                 selected_classes['your_class'])
+            enemy_hp -= int(your_attack * dmg_scaling)
+            if selected_classes['your_class_name'] == 'assassin':
+                attack_counter -= 1
+            elif selected_classes['your_class_name'] == 'berserker':
+                attack_counter = random.randint(0, 1)
+            else:
+                attack_counter = 0
         if selected_classes['enemy_class_name'] == 'demon hunter' and enemy_hp <= 0 and enemy_revives == 1:
             n = random.randint(0, 3)
             if n == 0:
@@ -205,12 +213,20 @@ def fight(selected_classes):
                 print('enemy hp afterwards: ' + str(enemy_hp))
                 print('You won!!!')
                 return
-        enemy_attack = attack(enemy_stats['mindmg'],
-                              enemy_stats['maxdmg'],
-                              enemy_stats['damage_reduction'],
-                              enemy_stats['crit_chance'],
-                              selected_classes['enemy_class'])
-        your_hp -= int(enemy_attack * dmg_scaling)
+        attack_counter = 2
+        while attack_counter == 1 or attack_counter == 2:
+            enemy_attack = attack(enemy_stats['mindmg'],
+                                  enemy_stats['maxdmg'],
+                                  enemy_stats['damage_reduction'],
+                                  enemy_stats['crit_chance'],
+                                  selected_classes['enemy_class'])
+            your_hp -= int(enemy_attack * dmg_scaling)
+            if selected_classes['enemy_class_name'] == 'assassin':
+                attack_counter -= 1
+            elif selected_classes['enemy_class_name'] == 'berserker':
+                attack_counter = random.randint(0, 1)
+            else:
+                attack_counter = 0
         dmg_scaling += 0.2
         if your_hp <= 0:
             n = random.randint(0, 3)
