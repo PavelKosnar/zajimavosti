@@ -1,3 +1,6 @@
+// Program vznikl na praxich, kdyz jsem zrovna nemel co delat a nudil jsem se
+// Nazvy promennych a dalsi texty jsou tedy pojaty neprofesionalne
+
 veta = input("Povez mi neco vtipneho: ")
 def uprava():
     pocet = 0
