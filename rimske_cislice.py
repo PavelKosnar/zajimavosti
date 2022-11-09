@@ -9,29 +9,29 @@ rom_to_num = {
 }
 
 
-def kontrola_zadani(text):
-    zadani = input(text)
-    return zadani.upper()
+def dostat_zadani(text):
+    rimske_cislice = input(text)
+    return rimske_cislice.upper()
 
 
 def vypocet():
-    spravne_zadani = kontrola_zadani('Zadejte rimske cislo: ')
-    for i in spravne_zadani:
+    zadani = dostat_zadani('Zadejte rimske cislo: ')
+    for i in zadani:
         if i not in rom_to_num:
-            spravne_zadani = kontrola_zadani('Spatne zadani, zkuste to znovu: ')
+            zadani = dostat_zadani('Spatne zadani, zkuste to znovu: ')
 
-    delka = len(spravne_zadani)
+    delka = len(zadani)
     vysledek = 0
     i = 0
 
     while i < delka:
-        if rom_to_num[spravne_zadani[0]] >= rom_to_num[spravne_zadani[1]]:
-            vysledek += rom_to_num[spravne_zadani[0]]
-            spravne_zadani = spravne_zadani[1:]
+        if rom_to_num[zadani[0]] >= rom_to_num[zadani[1]]:
+            vysledek += rom_to_num[zadani[0]]
+            zadani = zadani[1:]
             i += 1
         else:
-            vysledek += rom_to_num[spravne_zadani[1]] - rom_to_num[spravne_zadani[0]]
-            spravne_zadani = spravne_zadani[2:]
+            vysledek += rom_to_num[zadani[1]] - rom_to_num[zadani[0]]
+            zadani = zadani[2:]
             i += 2
     print(vysledek)
 
