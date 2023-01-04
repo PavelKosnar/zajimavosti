@@ -1,6 +1,6 @@
 # MOJE PROJEKTY
 
-### Závěrečný projekt
+### Maturitní projekt
 - Projekt do čtvrtého ročníku
 - Ovládání žaluzií pomocí esp8266
   - https://github.com/pavelkosnar/zaverecny-projekt
