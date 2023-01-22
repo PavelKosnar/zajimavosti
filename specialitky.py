@@ -15,10 +15,13 @@ print('-----------------------------------------------------')
 # F-STRING FORMAT
 print('F-STRING FORMAT:\n')
 text = 'FUN'
+num = 1000000
 print(f'{text}')
 print(f'{text:.<20}')
 print(f'{text:.>20}')
 print(f'{text:.^20}')
+print(f'{num}')
+print(f'{num:_}')
 print('-----------------------------------------------------')
 
 # VARIABLE SWAP
