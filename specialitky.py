@@ -81,3 +81,11 @@ print('FILE TO LIST:\n')
 file_to_list = [line.strip() for line in open('file_to_list.txt', 'r')]
 print(file_to_list)
 print('-----------------------------------------------------')
+
+# ADD LIST TO ANOTHER LIST
+print('ADD LIST TO ANOTHER LIST:\n')
+list1 = ['ONE', 'TWO']
+list2 = ['THREE', 'JI 2']
+list1.extend(list2)
+print(list1)
+print('-----------------------------------------------------')
