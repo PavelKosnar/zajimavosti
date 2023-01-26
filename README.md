@@ -4,6 +4,10 @@
 - Projekt do čtvrtého ročníku
 - Ovládání žaluzií pomocí ESP 8266
   - https://github.com/pavelkosnar/zaverecny-projekt
+### Autoškola
+- Projekt stránek autoškoly
+- Spolupráce s Hynkem Moravcem
+  - https://github.com/moravechynek/autoskola
 ### Shakes
 - Moje vlastní textová verze hry Shakes and Fidget
 - Jde pouze o souboj dvou postav
