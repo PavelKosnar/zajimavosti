@@ -5,9 +5,10 @@
 - Ovládání žaluzií pomocí ESP 8266
   - https://github.com/pavelkosnar/zaverecny-projekt
 ### Autoškola
-- Projekt stránek autoškoly
+- Projekt stránek a aplikace autoškoly
 - Spolupráce s Hynkem Moravcem
   - https://github.com/moravechynek/autoskola
+  - https://github.com/moravechynek/autoskola_mobil
 ### Shakes
 - Moje vlastní textová verze hry Shakes and Fidget
 - Jde pouze o souboj dvou postav
