@@ -1,6 +1,7 @@
+import os
+import pyautogui
 from random import randint, choice
 from sys import exit
-
 import pygame
 
 
@@ -303,9 +304,40 @@ def move_audio_bar(mouse_movement):
         mouse_button_interaction = False
 
 
+def handle_graphics():
+    handle_menu()
+    handle_controls()
+    handle_options()
+    audio_options()
+
+
+def setup(width=1920, height=1080):
+    global screen, sh, sw, shc, swc, gp, player, game_name, game_name_rect, font, player_stand, player_stand_rect,\
+        start_the_game_rect, start_the_game
+    sh = height
+    sw = width
+    shc = height / 400
+    swc = width / 800
+    gp = sh / 1.3
+
+    font = pygame.font.Font('font/pixeltype.ttf', int((sw + sh) / 24))
+    game_name = font.render('AVOID THE VERMIN!', False, 'Black')
+    game_name_rect = game_name.get_rect(center=(sw / 2, sh / 7))
+
+    player_stand = pygame.transform.rotozoom(player_stand_img, 0, sh / 200)
+    player_stand_rect = player_stand.get_rect(center=(sw / 2, sh / 2))
+    start_the_game = font.render('Press ENTER to start the game', False, 'Black')
+    start_the_game_rect = start_the_game.get_rect(center=(sw / 2, player_stand_rect.bottom + sh / 8))
+
+    handle_graphics()
+    player = pygame.sprite.GroupSingle()
+    player.add(Player())
+
+
 # START AND SCREEN
 pygame.init()
-screen = pygame.display.set_mode((1600, 800))
+monitor_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
+screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
 pygame.display.set_caption('Avoid the vermin!')
 fps = pygame.time.Clock()
 game_active = False
@@ -365,6 +397,7 @@ handle_controls()
 options_text = {}
 active_option = {}
 handle_options()
+fullscreen = False
 
 audio_items = {}
 audio_options()
@@ -376,8 +409,8 @@ progress_inner_center = audio_items['outer']['rect'].width / 2
 shield = pygame.sprite.GroupSingle()
 
 # MENU
-player_stand = pygame.image.load('graphics/Player/player_stand.png').convert_alpha()
-player_stand = pygame.transform.rotozoom(player_stand, 0, sh / 200)
+player_stand_img = pygame.image.load('graphics/Player/player_stand.png').convert_alpha()
+player_stand = pygame.transform.rotozoom(player_stand_img, 0, sh / 200)
 player_stand_rect = player_stand.get_rect(center=(sw / 2, sh / 2))
 
 start_the_game = font.render('Press ENTER to start the game', False, 'Black')
@@ -420,17 +453,27 @@ while True:
         if event.type == pygame.MOUSEBUTTONUP:
             mouse_down = False
 
+        if event.type == pygame.VIDEORESIZE and not fullscreen:
+            screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+
         if options:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 for options_button in options_text:
                     current_options_button = options_text[options_button]
                     options_rect = current_options_button['rect']
                     if options_rect.collidepoint(event.pos):
-                        active_option = options_rect
                         if options_button == 'Graphics':
                             audio = False
+                            fullscreen = not fullscreen
+                            if fullscreen:
+                                screen = pygame.display.set_mode(monitor_size, pygame.FULLSCREEN)
+                                setup(monitor_size[0], monitor_size[1])
+                            else:
+                                screen = pygame.display.set_mode((800, 400), pygame.VIDEORESIZE)
+                                setup(800, 400)
                         elif options_button == 'Audio':
                             audio = True
+                        active_option = options_text[options_button]['rect']
                 if audio:
                     mouse_down = True
 
@@ -481,10 +524,8 @@ while True:
             pygame.draw.rect(screen, (150, 150, 150), (sh / 4, sh / 4, sw / 1.3, sh / 1.6))
             pygame.draw.rect(screen, (32, 32, 32), (sh / 4, sh / 4, sw / 1.3, sh / 1.6), 2)
             pygame.draw.line(screen, (32, 32, 32), (sw / 2, sh / 4), (sw / 2, sh / 1.142857142857143 - 1), 3)
-            try:
+            if active_option:
                 pygame.draw.rect(screen, (200, 200, 200), active_option)
-            except TypeError:
-                pass
             for x in options_text:
                 current_options_text = options_text[x]
                 screen.blit(current_options_text['surf'], current_options_text['rect'])
