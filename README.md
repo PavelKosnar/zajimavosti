@@ -9,14 +9,18 @@
 - Spolupráce s Hynkem Moravcem
   - https://github.com/moravechynek/autoskola
   - https://github.com/moravechynek/autoskola_mobil
-### Shakes
-- Moje vlastní textová verze hry Shakes and Fidget
-- Jde pouze o souboj dvou postav
-  - https://github.com/pavelkosnar/shakes
 ### Vermin avoider
 - Skákací hra v jazyce python
 - Pokročilejší verze google dinosaura
   - https://github.com/pavelkosnar/vermin-avoider
+### Doom
+- Napodobenina hry Doom v jazyce python
+- Kód přepsán z <a href="https://www.youtube.com/watch?v=ECqUrT7IdqQ&ab_channel=CoderSpace" target="_blank">youtube videa</a> za účelem porozumět ray castingu
+  - https://github.com/pavelkosnar/doom
+### Shakes
+- Moje vlastní textová verze hry Shakes and Fidget
+- Jde pouze o souboj dvou postav
+  - https://github.com/pavelkosnar/shakes
 ### Hudba
 - Projekt do třetího ročníku
 - Webová stránka v djangu
