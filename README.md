@@ -9,9 +9,12 @@
 - Spolupráce s Hynkem Moravcem
   - https://github.com/moravechynek/autoskola
   - https://github.com/moravechynek/autoskola_mobil
+### Chess
+- Moje verze šachů v jazyce python
+  - https://github.com/pavelkosnar/chess
 ### Vermin avoider
 - Skákací hra v jazyce python
-- Pokročilejší verze google dinosaura
+- Mnohem pokročilejší verze google dinosaura
   - https://github.com/pavelkosnar/vermin-avoider
 ### Doom
 - Napodobenina hry Doom v jazyce python
