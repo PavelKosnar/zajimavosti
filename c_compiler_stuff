@@ -1,0 +1,5 @@
+gcc:
+  gcc -Wall -Wextra -pedantic -Werror=uninitialized -Werror=vla -Werror=return-type main.c -o main
+
+valgrind:
+  valgrind --tool=memcheck --track-origins=yes --leak-check=full -s ./main
