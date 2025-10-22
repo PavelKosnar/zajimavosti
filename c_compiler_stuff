@@ -1,5 +1,5 @@
 gcc:
-  gcc -Wall -Wextra -pedantic -Werror=uninitialized -Werror=vla -Werror=return-type main.c -o main
+  gcc ./main.c -o main -g -std=c99 -pedantic -Wno-unused-result -Wall -Wextra -Wconversion -Wno-sign-conversion -Wdangling-pointer=1 -Werror=uninitialized -Werror=vla -Werror=return-type -lm
 
 valgrind:
   valgrind --tool=memcheck --track-origins=yes --leak-check=full -s ./main
