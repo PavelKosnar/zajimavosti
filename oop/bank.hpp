@@ -20,4 +20,5 @@ class Bank {
         int GetClientsCount();
         Client* CreateClient(string name);
         Account* CreateAccount(Client* client);
+        Client* GetClient(int id);
 };

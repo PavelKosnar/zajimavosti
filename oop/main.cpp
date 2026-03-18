@@ -1,14 +1,14 @@
 #include <iostream>
-#include "bank.hpp"
-#include "client.hpp"
+//#include "bank.hpp"
+//#include "client.hpp"
 
 using namespace std;
 
 int main() {
-    Bank* bank = new Bank("International Bank");
+    //Bank* bank = new Bank("International Bank");
 
     for (int i = 0; i < 10; i++) {
-        string name = "Client-" + i;
+        string name = "Client " + i;
         cout << name << endl;
     }
     /*
@@ -31,7 +31,7 @@ int main() {
     cout << "Balances after exchange:" << endl;
     cout << "Acc1: " << acc1->GetBalance() << ", acc2: " << acc2->GetBalance() << endl;*/
 
-    delete bank;
+    //delete bank;
 
     return 0;
 }

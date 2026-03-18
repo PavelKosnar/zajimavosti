@@ -39,3 +39,8 @@ Account* Bank::CreateAccount(Client* client) {
     this->accounts[this->accountsCount++] = newAcc;
     return newAcc;
 }
+
+Client* Bank::GetClient(int id) {
+    if (this->clientsCount < id) return nullptr;
+    return this->clients[id];
+}
