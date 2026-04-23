@@ -28,7 +28,7 @@ void selection_sort(int* pole, int n) {
 	}
 }
 
-void insertionSort(int* pole, int n) {
+void insertion_sort(int* pole, int n) {
 	for (int i = 1; i < n; i++) {
 		int out = pole[i];
 		int j = i - 1;
@@ -76,7 +76,7 @@ int main() {
 	time_t end_time2 = time(nullptr);
 
 	time_t start_time3 = time(nullptr);
-	insertionSort(pole3, num);
+	insertion_sort(pole3, num);
 	time_t end_time3 = time(nullptr);
 
 	cout << "POLE 1:" << endl;
