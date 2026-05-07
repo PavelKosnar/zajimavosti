@@ -56,6 +56,24 @@ bool binary_search(int* arr, int n, int value) {
 	return false;
 }
 
+bool binary_search_recursive(int* arr, int l, int r, int value) {
+	if (r < l)
+		return false;
+
+	int m = (1 + r) / 2;
+
+	if (value == arr[m])
+		return true;
+
+	if (value < arr[m])
+		return binary_search_recursive(arr, l, m - 1, value);
+
+	if (value > arr[m])
+		return binary_search_recursive(arr, m + 1, r, value);
+
+	return false;
+}
+
 int partition(int* arr, int left, int right) {
 	int pivot = arr[right];
 	int last = left;
