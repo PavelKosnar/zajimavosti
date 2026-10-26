@@ -1,0 +1,172 @@
+#include <cassert>
+#include <iostream>
+#include <list>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class HashTable {
+public:
+    typedef list<string>::iterator Position;
+
+    HashTable(int size) {
+        tableSize = size;
+        buckets.resize(tableSize);
+    }
+
+    int hash(string url) {
+        long long h = 0;
+        for (char c : url) {
+            h = (h * 31 + c) % tableSize;
+        }
+        return (int)((h % tableSize + tableSize) % tableSize);
+    }
+
+    bool insert(string url, Position position) {
+        int idx = hash(url);
+        // Zkontrolujeme, zda URL již v bucketu existuje
+        for (auto& pair : buckets[idx]) {
+            if (pair.first == url) {
+                return false;
+            }
+        }
+        // Vložíme nový záznam (klíč + pozice)
+        buckets[idx].push_back({url, position});
+        return true;
+    }
+
+    Position* find(string url) {
+        int idx = hash(url);
+        for (auto& pair : buckets[idx]) {
+            if (pair.first == url) {
+                return &(pair.second);
+            }
+        }
+        return nullptr;
+    }
+
+    bool erase(string url) {
+        int idx = hash(url);
+        for (auto it = buckets[idx].begin(); it != buckets[idx].end(); ++it) {
+            if (it->first == url) {
+                buckets[idx].erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+private:
+    int tableSize;
+    // Oddělené řetězení: vektor seznamů, kde každý prvek seznamu je dvojice (URL, Position)
+    vector<list<pair<string, Position>>> buckets;
+};
+
+// HOTOVA CAST - nemente.
+class LRUCache {
+public:
+    LRUCache(int capacity, int tableSize) : index(tableSize) {
+        this->capacity = capacity;
+    }
+
+    bool visit(string url) {
+        HashTable::Position* found = index.find(url);
+
+        if (found != nullptr) {
+            pages.splice(pages.end(), pages, *found);
+            return true;
+        }
+
+        if ((int)pages.size() == capacity) {
+            string oldest = pages.front();
+            bool removed = index.erase(oldest);
+            assert(removed);
+            pages.pop_front();
+        }
+
+        pages.push_back(url);
+        HashTable::Position position = pages.end();
+        --position;
+        bool inserted = index.insert(url, position);
+        assert(inserted);
+        return false;
+    }
+
+    vector<string> snapshot() {
+        vector<string> result;
+        for (string url : pages) {
+            result.push_back(url);
+        }
+        return result;
+    }
+
+    void print() {
+        cout << "LRU [";
+        bool first = true;
+        for (string url : pages) {
+            if (!first) cout << ", ";
+            cout << url;
+            first = false;
+        }
+        cout << "] MRU" << endl;
+    }
+
+private:
+    int capacity;
+    list<string> pages;
+    HashTable index;
+};
+
+int main() {
+    LRUCache cache(3, 7);
+
+    assert(cache.visit("a.cz") == false);
+    assert(cache.visit("b.cz") == false);
+    assert(cache.visit("c.cz") == false);
+    assert(cache.visit("a.cz") == true);
+    assert(cache.visit("d.cz") == false);
+    assert(cache.visit("b.cz") == false);
+
+    vector<string> expected = {"a.cz", "d.cz", "b.cz"};
+    assert(cache.snapshot() == expected);
+    cache.print();
+
+    return 0;
+}
+
+Otazky:
+
+1. Jak vaše hashovací funkce převádí webovou adresu na index tabulky? Proč musí být výsledný index v rozsahu 0 až tableSize - 1?
+Převod: Funkce iteruje přes jednotlivé znaky řetězce (URL), přičemž používá polynomický součet (násobení mezivýsledku prvočíslem, např. 31, a přičtení ASCII hodnoty znaku).
+Rozsah 0 až tableSize - 1: Výsledek se ošetří operací modulo (% tableSize). Index musí být v tomto rozmezí, protože odpovídá platným indexům vnitřního pole (vektoru) tabulky. Vybočení z tohoto rozsahu by vedlo k neplatnému přístupu do paměti (Segmentation Fault).
+
+
+2. Co je kolize v hashovací tabulce?
+Kolize nastane, když dvě různé webové adresy (různé klíče) vygenerují po aplikaci hashovací funkce naprosto stejný index v tabulce.
+
+
+3. Jak vaše implementace řeší kolize? Popiste postup při vkládání a vyhledávání, pokud na daném indexu už existuje jiný záznam.
+Používám oddělené řetězení (separate chaining) – na každém indexu tabulky je uložen samostatný spojový seznam (std::list).
+Vkládání (insert): Spočítá se hash, zkontroluje se seznam na daném indexu, zda klíč už neexistuje. Pokud ne, nový prvek se jednoduše přidá (push_back) do tohoto seznamu.
+Vyhledávání (find): Spočítá se hash indexu a lineárně se prohledá seznam na daném indexu. Pokud se klíč shoduje, vrací se ukazatel na pozici, jinak nullptr.
+
+
+4. Co se stane, když odstraníte záznam, se kterým kolidoval jiný záznam? Jak zajistíte, že druhý záznam zůstane vyhledatelný?
+Při odděleném řetězení nevyvstává žádný problém. Každý bucket drží vlastní seznam.
+Odstraněním jednoho prvku pomocí list::erase() se odstraní pouze cílový uzel, přičemž sousední uzly ve stejném seznamu zůstanou netknuté a plně vyhledatelné (nemusíme řešit žádné "tombstones" jako u otevřeného adresování).
+
+
+5. Jaká je očekávaná časová složitost operací insert(), find() a erase()? Jaká může být jejich složitost v nejhorším případě?
+Očekávaná (průměrná) složitost: $O(1)$ (při rovnoměrném rozložení prvků a dostatečné velikosti tabulky vzhledem k počtu prvků).
+Nejhorší případ (Worst-case): $O(N)$, kde $N$ je celkový počet prvků v tabulce. 
+Nastává tehdy, pokud by se všechny klíče zahashovaly na úplně stejný index (seznam by se choval jako lineární seznam).
+
+
+6. Jak ovlivňuje velikost hashovací tabulky počet kolizí? Co se může stát, když je tabulka příliš malá?
+Velikost tabulky určuje koeficient naplnění (load factor).
+S větší tabulkou klesá pravděpodobnost, že se více prvků sejde na stejném indexu.
+Pokud je tabulka příliš malá vzhledem k množství ukládaných prvků, seznamy na jednotlivých indexech budou velmi dlouhé.
+To vede k častým kolizím, prodlužování doby prohledávání a degradaci výkonu operací z $O(1)$ na $O(N)$.
+
+
