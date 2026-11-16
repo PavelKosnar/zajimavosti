@@ -1,0 +1,223 @@
+#include <cassert>
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+const double INF = 1e100;
+const double EPS = 1e-9;
+
+struct Exchange {
+    int from;
+    int to;
+    double rate;
+};
+
+struct Graph {
+    vector<vector<double>> dist;
+    vector<vector<int>> next;
+};
+
+struct Result {
+    bool reachable;
+    double rate;
+    vector<int> path;
+};
+
+// Sestavte graf. dist[i][j] je nejlepsi znamy kurz z i do j,
+// next[i][j] je nasledujici vrchol na ceste z i do j.
+Graph buildGraph(int n, const vector<Exchange>& exchanges) {
+    Graph g;
+    // 0.0 znamena, ze smena mezi menami neexistuje
+    g.dist.assign(n, vector<double>(n, 0.0));
+    g.next.assign(n, vector<int>(n, -1));
+
+    // Kurz meny na sebe samu je 1.0
+    for (int i = 0; i < n; ++i) {
+        g.dist[i][i] = 1.0;
+        g.next[i][i] = i;
+    }
+
+    // Ulozeni primo zadanych smen
+    for (const auto& ex : exchanges) {
+        if (ex.rate > g.dist[ex.from][ex.to]) {
+            g.dist[ex.from][ex.to] = ex.rate;
+            g.next[ex.from][ex.to] = ex.to;
+        }
+    }
+
+    return g;
+}
+/*
+Graph buildGraph(int n, const vector<Exchange>& exchanges) {
+    Graph g;
+    g.dist.assign(n, vector<double>(n, INF));
+    g.next.assign(n, vector<int>(n, -1));
+
+    // Vzdalenost do sebe sama je 0 (kurz 1.0 => -log(1.0) = 0.0)
+    for (int i = 0; i < n; ++i) {
+        g.dist[i][i] = 0.0;
+        g.next[i][i] = i;
+    }
+
+    // Zaneseni orientovanych smen (osetreni pripadu vice kurzu mezi stejnou dvojici)
+    for (const auto& ex : exchanges) {
+        double weight = -log(ex.rate);
+        if (weight < g.dist[ex.from][ex.to]) {
+            g.dist[ex.from][ex.to] = weight;
+            g.next[ex.from][ex.to] = ex.to;
+        }
+    }
+
+    return g;
+}*/
+
+// Aktualizujte dist i next pri nalezeni vyhodnejsi cesty.
+void floydWarshall(Graph& g) {
+    int n = static_cast<int>(g.dist.size());
+
+    for (int k = 0; k < n; ++k) {
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                double newRate = g.dist[i][k] * g.dist[k][j];
+
+                // Hledame vyssi kurz (relativni tolerance EPS brani zacykleni
+                // kvuli nepresnosti double a funguje i pro velmi male kurzy)
+                if (newRate > g.dist[i][j] * (1.0 + EPS)) {
+                    g.dist[i][j] = newRate;
+                    g.next[i][j] = g.next[i][k];
+                }
+            }
+        }
+    }
+}
+
+// Volat pouze pro graf BEZ arbitraze.
+// Pro nedostupnou cestu vratte Result.reachable=false.
+Result findBestExchange(const Graph& g, int from, int to) {
+    Result result = {false, 0.0, {}};
+
+    if (g.next[from][to] == -1) {
+        return result;
+    }
+
+    result.reachable = true;
+    result.rate = g.dist[from][to];
+
+    int curr = from;
+    result.path.push_back(curr);
+    while (curr != to) {
+        curr = g.next[curr][to];
+        result.path.push_back(curr);
+    }
+
+    return result;
+}
+
+// Detekce arbitraze (uzavreneho sledu smen se ziskem > 1.0).
+bool hasArbitrage(const Graph& g) {
+    int n = static_cast<int>(g.dist.size());
+
+    for (int i = 0; i < n; ++i) {
+        if (g.dist[i][i] > 1.0 + EPS) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool nearlyEqual(double a, double b) {
+    return fabs(a - b) <= EPS * (1.0 + fabs(b));
+}
+
+void testDirectAndIndirect() {
+    // Zadna arbitraz: kurzy odpovidaji konzistentnim relativnim cenam.
+    vector<Exchange> rates = {
+        {0, 1, 0.00012},    // CZK -> LTC
+        {1, 2, 0.0027},     // LTC -> BTC
+        {0, 2, 0.00000030}  // CZK -> BTC (mene vyhodne)
+    };
+    Graph g = buildGraph(3, rates);
+    floydWarshall(g);
+    assert(!hasArbitrage(g));
+    Result r = findBestExchange(g, 0, 2);
+    assert(r.reachable);
+    assert(nearlyEqual(r.rate, 0.00012 * 0.0027));
+    assert((r.path == vector<int>{0, 1, 2}));
+    assert(!findBestExchange(g, 2, 0).reachable);
+}
+
+void testSelfAndDisconnected() {
+    vector<Exchange> rates = {{0, 1, 2.0}};
+    Graph g = buildGraph(3, rates);
+    floydWarshall(g);
+    assert(!hasArbitrage(g));
+    Result same = findBestExchange(g, 1, 1);
+    assert(same.reachable);
+    assert(nearlyEqual(same.rate, 1.0));
+    assert((same.path == vector<int>{1}));
+    assert(!findBestExchange(g, 0, 2).reachable);
+}
+
+void testArbitrage() {
+    vector<Exchange> rates = {
+        {0, 1, 2.0},
+        {1, 2, 3.0},
+        {2, 0, 0.2}  // soucin = 1.2 > 1
+    };
+    Graph g = buildGraph(3, rates);
+    floydWarshall(g);
+    assert(hasArbitrage(g));
+    // Pri arbitrazi se optimalni cesty v tomto testu nevyhledavaji.
+}
+
+int main() {
+    testDirectAndIndirect();
+    testSelfAndDisconnected();
+    testArbitrage();
+    cout << "Vsechny testy prosly.\n";
+    return 0;
+}
+
+
+
+/*
+1. Co představují vrcholy, orientované hrany a jejich váhy?
+    Vrcholy: Jednotlivé (krypto)měny (např. 0 = CZK, 1 = LTC, 2 = BTC)
+    Orientované hrany: Možnost přímé směny z výchozí měny $u$ do cílové měny $v$. Hrany jsou orientované, protože kurz $u \to v$ bývá jiný než $v \to u$ (nebo opačný směr vůbec neexistuje).
+    Váhy hran: Přímo směnné kurzy $r_{u,v}$ (hodnota 0.0 značí, že přímá směna neexistuje, a hodnota na diagonále 1.0 znamená směnu měny na sebe samu).
+
+2. Proč nelze přímo minimalizovat součet směnných kurzů?
+    Při řetězení více směn za sebou se kurzy násobí, nikoliv sčítají (pokud vyměním 1 CZK za LTC s kurzem $r_1$ a poté za BTC s kurzem $r_2$, výsledná částka je $1 \cdot r_1 \cdot r_2$).
+    Navíc nechceme součet minimalizovat, ale hledáme nejvyšší možný výsledný kurz (maximalizujeme součin kurzů na cestě).
+
+3. Jak funguje vaše transformace a její zpětný převod?
+    V této verzi žádnou matematickou transformaci nepoužíváme – s kurzy pracujeme v jejich původní podobě a zpětný převod tedy není potřeba
+    Místo převodu problému na standardní sčítání a minimalizaci (pomocí záporného logaritmu $w = -\ln(r)$ a zpětné exponenciály $r = e^{-d}$) jsme upravili samotný relaxační krok Floyd-Warshallova algoritmu tak, aby cesty násobil (g.dist[i][k] * g.dist[k][j]) a hledal maximum (>)
+    Logaritmická transformace má v praxi výhodu v tom, že u velkých grafů s arbitráží brání exponenciálnímu růstu čísel a přetečení typu double, pro menší grafy ale přímé násobení funguje stejně přesně.
+
+4. Proč je vnější smyčka algoritmu vedena přes vrchol $k$?
+    Floyd-Warshallův algoritmus využívá dynamické programování. V $k$-té iteraci vnější smyčky platí invariant, že matice dist[i][j] obsahuje nejvýhodnější směnné kurzy z $i$ do $j$, které jako mezistupně využívají pouze měny z množiny $\{0, 1, \dots, k-1\}$.
+    Postupným přidáváním povolených mezivrcholů $k = 0, 1, \dots, n-1$ algoritmus ověřuje, zda nepřímá směna $i \to k \to j$ nedá lepší kurz než dosavadní cesta $i \to j$. Kdyby smyčka přes $k$ nebyla vnější, neprozkoumaly by se všechny možné kombinace mezistupňů.
+
+5. Jakou časovou a paměťovou složitost mají vaše funkce?
+    buildGraph: Časová $\mathcal{O}(V^2 + E)$ (inicializace dvou matic o velikosti $V \times V$ a průchod přes $E$ zadaných směnných kurzů), paměťová $\mathcal{O}(V^2)$
+    floydWarshall: Časová $\mathcal{O}(V^3)$ kvůli třem vnořeným cyklům přes všechny vrcholy, paměťová $\mathcal{O}(1)$ navíc (upravuje přímo předané matice o velikosti $\mathcal{O}(V^2)$).
+    findBestExchange: Časová $\mathcal{O}(V)$ v nejhorším případě (rekonstrukce cesty přes maximálně $V$ vrcholů), paměťová $\mathcal{O}(V)$ pro uložení vektoru path.
+    hasArbitrage: Časová $\mathcal{O}(V)$ (průchod hlavní diagonálou matice), paměťová $\mathcal{O}(1)$.
+
+6. Jak rekonstruujete posloupnost směn?
+    Pomocí matice následníků next[i][j], která si pamatuje první vrchol za vrcholem $i$ na nejvýhodnější cestě do $j$.
+    Při sestavení grafu se nastaví next[u][v] = v pro přímé směny. Kdykoliv algoritmus najde výhodnější směnu přes mezivrchol $k$, přepíše next[i][j] = next[i][k].
+    Samotná rekonstrukce začne v curr = from a v cyklu přechází přes curr = next[curr][to], dokud nedorazí do cílové měny to.
+
+7. Jak poznáte arbitráž a co znamená pro optimalni cestu?
+    Detekce: Arbitráž nastane, pokud existuje uzavřený cyklus směn, po jehož projití získáme více než 1 jednotku původní měny ($r_1 \cdot r_2 \cdots r_m > 1$). Po doběhnutí algoritmu se to projeví tak, že alespoň jeden prvek na hlavní diagonále matice přesáhne jedničku (dist[i][i] > 1.0 + EPS).
+    Význam pro optimální cestu: Pokud je ze startovní měny dosažitelný arbitrážní cyklus (a z něj cílová měna), konečné optimum neexistuje. Opakovaným točením peněz v tomto cyklu lze teoreticky získat nekonečně velký kurz a rekonstrukce pomocí matice next by se zacyklila.
+
+
+
+*/
