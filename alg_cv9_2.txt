@@ -1,0 +1,117 @@
+Result buildNetwork(const Network& network) {
+    Result result;
+    result.possible = false;
+    result.totalCost = 0;
+
+    int n = network.buildingCount;
+    if (n <= 0) {
+        return result;
+    }
+
+    // Obycejne pole: kazda budova je na zacatku ve sve vlastni skupine (komponente)
+    vector<int> component(n);
+    for (int i = 0; i < n; ++i) {
+        component[i] = i;
+    }
+
+    int componentCount = n;
+    vector<Connection> newCandidates;
+
+    // 1. Nejprve zpracujeme existujici spojeni
+    for (const auto& conn : network.connections) {
+        if (conn.existing) {
+            int compA = component[conn.from];
+            int compB = component[conn.to];
+
+            // Pokud jeste nejsou ve stejne skupine, sjednotime je prebarvenim
+            if (compA != compB) {
+                for (int i = 0; i < n; ++i) {
+                    if (component[i] == compB) {
+                        component[i] = compA;
+                    }
+                }
+                componentCount--;
+            }
+        } else {
+            newCandidates.push_back(conn);
+        }
+    }
+
+    // Pokud uz existujici sit vse propojuje
+    if (componentCount == 1) {
+        result.possible = true;
+        return result;
+    }
+
+    // 2. Seradime mozna nova spojeni od nejlevnejsiho
+    sort(newCandidates.begin(), newCandidates.end(), [](const Connection& a, const Connection& b) {
+        return a.cost < b.cost;
+    });
+
+    // 3. Prochazime nejlevnejsi hrany a spojujeme ruzne skupiny
+    for (const auto& conn : newCandidates) {
+        int compA = component[conn.from];
+        int compB = component[conn.to];
+
+        if (compA != compB) {
+            // Prebarvime celou skupinu B na skupinu A
+            for (int i = 0; i < n; ++i) {
+                if (component[i] == compB) {
+                    component[i] = compA;
+                }
+            }
+
+            result.totalCost += conn.cost;
+            result.newConnections.push_back(conn);
+            componentCount--;
+
+            if (componentCount == 1) {
+                break;
+            }
+        }
+    }
+
+    // Kontrola, zda se podarilo spojit vsechny budovy
+    if (componentCount == 1) {
+        result.possible = true;
+    } else {
+        result.possible = false;
+        result.totalCost = 0;
+        result.newConnections.clear();
+    }
+
+    return result;
+}
+
+1. Proc lze problem vystavby opticke site resit pomoci minimalni kostry grafu?
+Budovy predstavuji vrcholy neorientovaneho ohodnoceneho grafu a mozna spojeni tvori jeho hrany s vahami rovnymi nakladum na vystavbu. Pozadavek na vzajemnou dostupnost vsech budov znamena, ze vysledny podgraf musi byt souvisly. Pozadavek na minimalizaci nakladu a vylouceni nadbytecnych spojeni (cyklu) presne odpovida definici minimalni kostry grafu (stromu, ktery spojuje vsechny vrcholy s minimalnim moznym souctem vah hran).
+
+2. Popiste princip algoritmu, ktery jste pouzili. Vysvetlete, proc vede k optimalnimu reseni.
+Pouzil jsem Kruskaluv algoritmus. Jde o hladovy (greedy) algoritmus, ktery nejprve seradi vsechny mozne nove hrany vzestupne podle jejich ceny a pote je postupne prochazi od nejlevnejsi. Hranu prida do vysledne site prave tehdy, pokud spojuje dve budovy, ktere zatim nejsou vzajemne dosazitelne (nevytvori se tim cyklus). K optimalnimu reseni vede diky tzv. vlastnosti rezu (cut property): pro jakykoliv rez grafu (rozdeleni vrcholu do dvou neprazdnych mnozin) plati, ze hrana s minimalni vahou prechazejici pres tento rez musi byt soucasti nejake minimalni kostry.
+
+3. Jakym zpusobem vas algoritmus zjistuje, zda by pridanim noveho spojeni vznikl cyklus?
+Algoritmus vyuziva obycejne pole component, kde ma kazda budova ulozene cislo sve skupiny (komponenty souvislosti). Na zacatku ma kazda budova sve vlastni cislo. Pred pridanim hrany mezi budovami U a V se porovna component[U] a component[V]. Pokud jsou cisla stejna, budovy uz jsou propojene jinou cestou a pridani hrany by vytvorilo cyklus, takze se hrana preskoci. Pokud se cisla lisi, hrana se prida a vsem budovam ze druhe skupiny se v poli prepise cislo na prvni skupinu.
+
+4. Jak jste upravili algoritmus, aby zohlednoval jiz existujici infrastrukturu?
+Pred samotnym razenim a vyberem novych hran projdu vsechna spojeni oznacena jako existing = true. Pokud takove spojeni vede mezi dvema budovami s ruznym cislem komponenty, sjednotim jejich skupiny v poli component. Cena techto existujicich hran se do celkovych nakladu nezapocitava. Pokud existujici sit obsahuje cyklus, algoritmus zjisti, ze budovy uz maji stejne cislo komponenty, a hranu bezpecne ignoruje.
+
+5. Kolik novych spojeni je nutne vybudovat, pokud existujici infrastruktura tvori k vzajemne nepropojenych komponent?
+Je nutne vybudovat presne k - 1 novych spojeni. Kazde nove spojeni, ktere nevytvori cyklus, totiz sjednoti dve dosud oddelene komponenty v jednu, cimz snizi celkovy pocet komponent o 1. Abychom se z poctu k dostali na jedinou souvislou komponentu (1), potrebujeme k - 1 hran.
+
+6. Jak algoritmus zjisti, ze vsechny budovy nelze propojit?
+Algoritmus si udrzuje promennou componentCount, ktera na zacatku odpovida poctu budov V a pri kazdem sjednoceni dvou skupin se snizi o 1. Pokud po projiti vsech existujicich i potencialnich novych hran zustane componentCount vetsi nez 1, znamena to, ze zustaly nejake oddelene skupiny budov a vsechny budovy nelze propojit.
+
+7. Jaka je casova a pametova slozitost vaseho reseni? Vyjadrete ji v zavislosti na poctu budov V a poctu moznych spojeni E. Zduvodnete slozitost jednotlivych operaci.
+Casova slozitost je O(E log E + V^2).
+Zduvodneni casove slozitosti: Inicializace pole komponent trva O(V). Serazeni moznych hran pomoci std::sort trva O(E log E). Pruchod vsemi E hranami zabere O(E) kontrol v poli. K samotnemu sjednoceni (prebarveni pole) ale muze dojit maximalne (V - 1)-krat a kazde prebarveni projde cele pole o velikosti V, coz celkem da O(V^2). Vysledna casova slozitost je tedy O(E log E + V^2).
+Pametova slozitost je O(V + E). Pole component ma velikost V, tedy O(V), a pomocny vektor kandidatskych hran spolu s vyslednym vektorem vyuzivaji v nejhorsim pripade pamet O(E).
+
+8. Muze pro stejna vstupni data existovat vice ruznych optimalnich reseni? Uvedte priklad.
+Ano, muze, a to v pripade, ze v grafu existuje vice moznych spojeni se stejnou cenou (vahou), ktera mohou nahradit jedno druhe bez zmeny celkove ceny a souvislosti.
+Priklad: Mejme 3 budovy (0, 1, 2) bez existujicich spojeni. Mozna spojeni jsou (0-1 za cenu 10), (1-2 za cenu 10) a (0-2 za cenu 10). Vsechna tri mozna reseni o dvou hranach (napr. {0-1, 1-2}, {1-2, 0-2} nebo {0-1, 0-2}) maji stejnou minimalni celkovou cenu 20, ale vyuzivaji ruzne hrany.
+
+9. Zarucuje vysledna sit take nejkratsi cestu mezi libovolnymi dvema budovami? Vysvetlete proc.
+Nezarucuje. Minimalni kostra minimalizuje celkovou sumu vah vsech vybranych hran v cele siti (globalni naklady na vystavbu), nikoliv delku cesty mezi konkretni dvojici vrcholu. Muze se stat, ze prima hrana mezi budovami A a B je velmi draha (napr. cena 100), zatimco cesta pres deset jinych budov stoji po 1 jednotce na kazdy usek (celkem 10). Minimalni kostra vybere cestu pres deset budov, takze cesta mezi A a B bude mit v ramci site delku 10 misto kratsi prime cesty delky 100 (nebo v pripade poctu skoku/latence bude vyrazne delsi).
+
+10. Co se stane, pokud dojde k poruse nektereho nove vybudovaneho spojeni? Bude sit nadale funkcni?
+Nebude plne funkcni – sit se rozpadne na dve vzajemne izolovane casti (komponenty). Protoze minimalni kostra neobsahuje zadne cykly a nove vybudovana spojeni predstavuji tzv. mosty mezi komponentami, neexistuje v siti zadna zalozni (alternativni) trasa, kudy by data mohla porusene spojeni obejit.
