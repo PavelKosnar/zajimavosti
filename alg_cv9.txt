@@ -1,0 +1,147 @@
+// ================================================
+// POMOCNA DATOVA STRUKTURA (UNION-FIND / DSU)
+// ================================================
+
+class DSU {
+private:
+    vector<int> parent;
+    vector<int> rank;
+
+public:
+    DSU(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
+        }
+    }
+
+    // Najde reprezentanta komponenty s kompresi cesty
+    int find(int x) {
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    }
+
+    // Spoji dve komponenty podle rangu. Vraci true, pokud byly oddelene.
+    bool unite(int x, int y) {
+        int rootX = find(x);
+        int rootY = find(y);
+
+        if (rootX == rootY) {
+            return false; // Uz jsou ve stejne komponente (vznikl by cyklus)
+        }
+
+        if (rank[rootX] < rank[rootY]) {
+            parent[rootX] = rootY;
+        } else if (rank[rootX] > rank[rootY]) {
+            parent[rootY] = rootX;
+        } else {
+            parent[rootY] = rootX;
+            rank[rootX]++;
+        }
+        return true;
+    }
+};
+
+
+// ================================================
+// IMPLEMENTACE
+// ================================================
+
+Result buildNetwork(const Network& network) {
+    Result result;
+    result.possible = false;
+    result.totalCost = 0;
+
+    int n = network.buildingCount;
+    if (n <= 0) {
+        return result;
+    }
+
+    DSU dsu(n);
+    int components = n;
+    vector<Connection> candidates;
+
+    // 1. Nejprve zpracujeme jiz existujici spojeni (bez ohledu na cenu ci cykly)
+    for (const auto& conn : network.connections) {
+        if (conn.existing) {
+            if (dsu.unite(conn.from, conn.to)) {
+                components--;
+            }
+        } else {
+            candidates.push_back(conn);
+        }
+    }
+
+    // Pokud uz existujici sit vse propojuje (nebo mame jen 1 budovu)
+    if (components == 1) {
+        result.possible = true;
+        return result;
+    }
+
+    // 2. Seradime mozna nova spojeni vzestupne podle ceny
+    sort(candidates.begin(), candidates.end(), [](const Connection& a, const Connection& b) {
+        return a.cost < b.cost;
+    });
+
+    // 3. Kruskaluv algoritmus: pridavame nejlevnejsi hrany spojujici ruzne komponenty
+    for (const auto& conn : candidates) {
+        if (dsu.unite(conn.from, conn.to)) {
+            result.totalCost += conn.cost;
+            result.newConnections.push_back(conn);
+            components--;
+
+            if (components == 1) {
+                break; // Vsechny budovy jsou propojene
+            }
+        }
+    }
+
+    // Overime, zda se podarilo spojit vsechny komponenty do jedine
+    if (components == 1) {
+        result.possible = true;
+    } else {
+        // Nelze propojit -> reset vysledku dle zadani
+        result.possible = false;
+        result.totalCost = 0;
+        result.newConnections.clear();
+    }
+
+    return result;
+}
+
+
+1. Proc lze problem vystavby opticke site resit pomoci minimalni kostry grafu?
+Budovy predstavuji vrcholy neorientovaneho ohodnoceneho grafu a mozna spojeni tvori jeho hrany s vahami rovnymi nakladum na vystavbu. Pozadavek na vzajemnou dostupnost vsech budov znamena, ze vysledny podgraf musi byt souvisly. Pozadavek na minimalizaci nakladu a vylouceni nadbytecnych spojeni (cyklu) presne odpovida definici minimalni kostry grafu (stromu, ktery spojuje vsechny vrcholy s minimalnim moznym souctem vah hran).
+
+2. Popiste princip algoritmu, ktery jste pouzili. Vysvetlete, proc vede k optimalnimu reseni.
+Pouzil jsem Kruskaluv algoritmus. Jde o hladovy (greedy) algoritmus, ktery nejprve seradi vsechny dostupne hrany vzestupne podle jejich ceny a pote je postupne prochazi od nejlevnejsi. Hranu prida do vysledne site prave tehdy, pokud spojuje dva vrcholy, ktere zatim nejsou vzajemne dosazitelne (nevytvori se tim cyklus). K optimalnimu reseni vede diky tzv. vlastnosti rezu (cut property): pro jakykoliv rez grafu (rozdeleni vrcholu do dvou neprazdnych mnozin) plati, ze hrana s minimalni vahou prechazejici pres tento rez musi byt soucasti nejake minimalni kostry.
+
+3. Jakym zpusobem vas algoritmus zjistuje, zda by pridanim noveho spojeni vznikl cyklus?
+Algoritmus vyuziva datovou strukturu Disjoint Set Union (Union-Find). Kazda budova je na zacatku ve sve vlastni mnozine (komponente souvislosti). Pred pridanim hrany mezi budovami U a V se pomoci operace find() zjisti korenovy reprezentant mnoziny pro U i pro V. Pokud jsou reprezentanti shodni, budovy uz jsou propojeny jinou cestou a pridani teto hrany by vytvorilo cyklus, proto se hrana zahodi. Pokud se lisi, mnoziny se spoji operaci unite().
+
+4. Jak jste upravili algoritmus, aby zohlednoval jiz existujici infrastrukturu?
+Pred samotnym razenim a vyberem novych hran projdu vsechna spojeni oznacena jako existing = true. Pro kazde takove spojeni zavolam operaci unite() v strukture Union-Find, cimz se budovy propojene existujicim vedenim slouci do stejnych komponent souvislosti jeste pred zacatkem hledani novych hran. Cena techto existujicich hran se do celkovych nakladu nezapocitava, a pokud existujici sit obsahuje cyklus, operace unite() ho jednoduse ignoruje.
+
+5. Kolik novych spojeni je nutne vybudovat, pokud existujici infrastruktura tvori k vzajemne nepropojenych komponent?
+Je nutne vybudovat presne k - 1 novych spojeni. Kazde nove spojeni, ktere nevytvori cyklus, totiz spoji dve dosud oddelene komponenty v jednu, cimz snizi celkovy pocet komponent o 1. Abychom se z poctu k dostali na jedinou souvislou komponentu (1), potrebujeme k - 1 hran.
+
+6. Jak algoritmus zjisti, ze vsechny budovy nelze propojit?
+Algoritmus si udrzuje pocitadlo aktualniho poctu nespojenych komponent (na zacatku rovno poctu budov V). Pri kazdem uspesnem spojeni dvou komponent se pocitadlo snizi o 1. Pokud po projiti vsech existujicich i potencialnich novych hran zustane pocet komponent vetsi nez 1, znamena to, ze graf neni souvisly a vsechny budovy nelze propojit.
+
+7. Jaka je casova a pametova slozitost vaseho reseni? Vyjadrete ji v zavislosti na poctu budov V a poctu moznych spojeni E. Zduvodnete slozitost jednotlivych operaci.
+Casova slozitost je O(E log E), coz je pri souvislem grafu ekvivalentni O(E log V).
+Zduvodneni casove slozitosti: Inicializace DSU trva O(V). Zpracovani existujicich hran trva O(E * alfa(V)), kde alfa je inverzni Ackermannova funkce (prakticky konstanta). Nejdrazsi operaci je serazeni kandidatskych hran pomoci std::sort, ktere ma slozitost O(E log E). Nasledny pruchod serazenymi hranami a volani operaci find/unite zabere opet O(E * alfa(V)). Celkova casova slozitost je tedy dana razenim hran: O(E log E).
+Pametova slozitost je O(V + E). Struktura DSU potrebuje pole parent a rank o velikosti V, tedy O(V). Seznam kandidatskych hran a vysledny seznam novych spojeni vyuzivaji v nejhorsim pripade pamet O(E).
+
+8. Muze pro stejna vstupni data existovat vice ruznych optimalnich reseni? Uvedte priklad.
+Ano, muze, a to v pripade, ze v grafu existuje vice moznych spojeni se stejnou cenou (vahou), ktera mohou nahradit jedno druhe bez zmeny celkove ceny a souvislosti.
+Priklad: Mejme 3 budovy (0, 1, 2) bez existujicich spojeni. Mozna spojeni jsou (0-1 za cenu 10), (1-2 za cenu 10) a (0-2 za cenu 10). Vsechna tri mozna reseni o dvou hranach (napr. {0-1, 1-2}, {1-2, 0-2} nebo {0-1, 0-2}) maji stejnou minimalni celkovou cenu 20, ale vyuzivaji ruzne hrany.
+
+9. Zarucuje vysledna sit take nejkratsi cestu mezi libovolnymi dvema budovami? Vysvetlete proc.
+Nezarucuje. Minimalni kostra minimalizuje celkovou sumu vah vsech vybranych hran v cele siti (globalni naklady na vystavbu), nikoliv delku cesty mezi konkretni dvojici vrcholu. Muze se stat, ze prima hrana mezi budovami A a B je velmi draha (napr. cena 100), zatimco cesta pres deset jinych budov stoji po 1 jednotce na kazdy usek (celkem 10). Minimalni kostra vybere cestu pres deset budov, takze cesta mezi A a B bude mit v ramci site delku 10 misto kratsi prime cesty delky 100 (nebo v pripade poctu skoku/latence bude vyrazne delsi).
+
+10. Co se stane, pokud dojde k poruse nektereho nove vybudovaneho spojeni? Bude sit nadale funkcni?
+Nebude plne funkcni – sit se rozpadne na dve vzajemne izolovane casti (komponenty). Protoze minimalni kostra neobsahuje zadne cykly a nove vybudovana spojeni predstavuji tzv. mosty mezi komponentami, neexistuje v siti zadna zalozni (alternativni) trasa, kudy by data mohla porusene spojeni obejit.
